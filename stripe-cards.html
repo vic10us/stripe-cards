@@ -1,0 +1,190 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="./card-preview.html">
+<link rel="import" href="./stripe-import.html">
+<link rel="import" href="../polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../paper-fab/paper-fab.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../neon-animation/web-animations.html">
+<link rel="import" href="../neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../neon-animation/animations/fade-in-animation.html">
+
+<dom-module id="stripe-cards">
+  <template>
+    <style>
+      :host {
+        display: block;
+        /* --card-preview-border: none; */
+        --card-preview-card-details: {
+          border-radius: 0px;
+          margin: 4px;
+        };
+      }
+
+      .add-fab {
+        float: right;
+        background-color: #008cdd;
+      }
+      
+      .StripeElement {
+        background-color: white;
+        /* height: 40px; */
+        padding: 10px 12px;
+        /* border-radius: 4px; */
+        border: 1px solid transparent;
+        box-shadow: 0 1px 3px 0 #bbbfc4;
+        -webkit-transition: box-shadow 150ms ease;
+        transition: box-shadow 150ms ease;
+        margin: 4px;
+      }
+
+      .StripeElement--focus {
+        box-shadow: 0 1px 3px 0 #cfd7df;
+      }
+
+      .StripeElement--invalid {
+        border-color: #fa755a;
+      }
+
+      .StripeElement--webkit-autofill {
+        background-color: #fefde5 !important;
+      }
+
+      .add-card-container {
+        width: calc(100% - 82px);
+        float: left;
+      }
+      .add-card-container iframe {
+        width:100%;
+      }
+      .add-button {
+        width: 72px;
+        margin: 4px;
+        height: 37px;
+        line-height: 37px;
+        text-align: center;
+        background-color: #008cdd;
+        color: #fff;
+        border: solid 1px transparent;
+        box-shadow: 2px 2px 3px 0px #bbbfc4;
+        -webkit-transition: box-shadow 150ms ease;
+        transition: box-shadow 150ms ease;
+        float: left;
+        cursor: pointer;
+      }
+      .clearfix {
+        clear: both;
+      }
+    </style>
+    <h2>Credit Cards: </h2>
+    <dom-repeat items="[[cards]]" filter="_isAdded">
+      <template>
+        <card-preview last4="[[item.last4]]" type="[[item.type]]" expiry="[[item.expiry]]" status="[[item.status]]" is-default="[[item.isDefault]]" can-remove="[[_canRemove(item)]]" on-remove="_removeCard"></card-preview>
+      </template>
+    </dom-repeat>
+    <div id="payment-form">
+      <div class="add-card-container">
+        <div id="card-element">
+          <!-- A Stripe Element will be inserted here. -->
+        </div>
+    
+        <!-- Used to display form errors. -->
+        <div id="card-errors" role="alert"></div>
+      </div>
+      <div class="add-button" style="position: relative" on-click="_addCard">Save
+          <paper-ripple></paper-ripple>
+      </div>
+      <div class="clearfix"></div>
+    </div>
+
+    <paper-fab mini icon="icons:add" class="add-fab"></paper-fab>
+    <div class="clearfix"></div>
+
+    <paper-dialog id="confirmDialog" entry-animation="scale-up-animation"
+                  exit-animation="fade-out-animation">
+      <h2>Header</h2>
+      <div>Dialog body</div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    /**
+     * `stripe-cards`
+     * Manage your stripe cards
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class StripeCards extends Polymer.Element {
+      static get is() { return 'stripe-cards'; }
+      
+      constructor() {
+        super();
+        this.stripe = Stripe(this.publishableKey || 'pk_test_6pRNASCoBOKtIshFeQd4XMUh');
+        this.elements = this.stripe.elements();
+        this.elementStyle = {
+          base: {
+            color: '#32325d',
+            lineHeight: '18px',
+            fontFamily: '"Roboto", "Noto", sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '14px',
+            '::placeholder': {
+              color: '#aab7c4'
+            }
+          },
+          invalid: {
+            color: '#fa755a',
+            iconColor: '#fa755a'
+          }
+        };
+        this.card = this.elements.create('card', {style: this.style});
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+        const mount = this.root.getElementById("card-element");
+        // console.log(this.$.cardElement);
+        this.card.mount(mount);
+      }
+
+      static get properties() {
+        return {
+          cards: {
+            type: Array,
+            value: function() {
+              return [
+                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'added', isDefault: true },
+                { last4: '4242', expiry: '04/19', type: 'visa', canRemove: true, status: 'added', isDefault: false }
+              ];
+            },
+            notify: true
+          },
+          publishableKey: {
+            type: String,
+            value: null
+          }
+        };
+      }
+
+      _removeCard(e) {
+        console.log('remove', e);
+        //this.$.confirmDialog.toggle();
+      }
+      /*
+      For card list filtering
+      */
+      _isAdded(item) {
+        return (item.status || 'error') === 'added' || false;
+      }
+
+      _canRemove(item) {
+        return (item.status === 'added') && !item.isDefault && !!item.canRemove;
+      }
+
+    }
+
+    window.customElements.define(StripeCards.is, StripeCards);
+  </script>
+</dom-module>
