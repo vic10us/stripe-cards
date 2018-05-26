@@ -84,7 +84,7 @@
                       expiry="[[item.expiry]]" 
                       status="[[item.status]]" 
                       is-default="[[item.isDefault]]" 
-                      can-remove="[[_canRemove(item, cards.*)]]"
+                      can-remove="[[_canRemove(item, cards.length)]]"
                       on-remove="_onRemoveCard"></card-preview>
       </template>
     </dom-repeat>
@@ -161,7 +161,7 @@
             type: Array,
             value: function() {
               return [
-                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'active', isDefault: false },
+                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
                 { last4: '4242', expiry: '04/19', type: 'visa', canRemove: true, status: 'added', isDefault: false },
                 { last4: '4242', expiry: '04/19', type: 'amex', canRemove: true, status: 'active', isDefault: false }
               ];
@@ -202,7 +202,7 @@
       }
 
       _removeCard(card) {
-        if (!this._canRemove(card)) return;
+        // if (!this._canRemove(card, this.cards.length)) return;
         var index = this.cards.indexOf(card);
         console.log(card, index);
         if (index > -1) {
@@ -221,10 +221,10 @@
         return i >= 0;
       }
 
-      _canRemove(item, cards) {
+      _canRemove(item, cardCount) {
         var i = this._removeableStatuses.indexOf(item.status);
-        console.log(item.last4, i, item.isDefault, !item.canRemove);
-        return (this.cards.length > 1) && (i >= 0) && !item.isDefault && !!item.canRemove;
+        console.log(cardCount, item.last4, i, item.isDefault, !item.canRemove);
+        return (cardCount > 1) && (i >= 0) && !item.isDefault && !!item.canRemove;
       }
 
     }
