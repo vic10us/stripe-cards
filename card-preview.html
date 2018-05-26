@@ -185,19 +185,26 @@
         background-color: var(--stripe-card-preview-color,#008cdd);
         border-color: var(--stripe-card-preview-color,#008cdd);
       }
+
+      .default,
+      .star:hover {
+        fill:#f3b70b;
+      }
+
+      .remove:hover {
+        fill: #ff0000;
+      }
+
     </style>
+
     <div class="card-details">
       <div class$="card-logo [[type]]">&nbsp;</div>
       <div class="last-four">&#9679;&#9679;&#9679;&#9679; [[last4]]</div>
       <div class="expiry-date">[[expiry]]</div>
-      <div hidden$="[[!isDefault]]" class="item-cell bs-u-right bs-u-shrink db-CardsList-cell-default">
-        <span class="badge badge--small badge--blue badge--solid">
-            Default
-        </span>
-      </div>
-      <div hidden$="[[!canRemove]]" class="remove-button" on-click="_removeCard">
-        <iron-icon icon="icons:clear"></iron-icon>remove
-      </div>
+      <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_removeCard" on-mouseenter="_swapIcon" on-mouseleave="_returnIcon"></iron-icon>
+      <iron-icon hidden$="[[isDefault]]" icon="icons:star-border" class="star" on-click="_tagCard"></iron-icon>
+      <iron-icon hidden$="[[!isDefault]]" icon="icons:star" class="default"></iron-icon>
+      <!-- <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_removeCard"></iron-icon> -->
     </div>
     
   </template>
@@ -241,7 +248,8 @@
           },
           isDefault: {
             type: Boolean,
-            value: false
+            value: false,
+            notify: true
           },
           canRemove: {
             type: Boolean,
@@ -253,8 +261,22 @@
           }
         };
       }
+
+      _swapIcon(e) {
+        e.target.icon = 'icons:remove-circle';
+      }
+
+      _returnIcon(e) {
+        e.target.icon = 'icons:remove-circle-outline';
+      }
+
       _removeCard() {
         this.dispatchEvent(new CustomEvent('remove', {detail: {removed: true}, bubbles: true, composed: true}));
+        // console.log('clicked remove', this.methodInBehavior(this.type));
+      }
+
+      _tagCard() {
+        this.dispatchEvent(new CustomEvent('tag', {detail: {default: true}, bubbles: true, composed: true}));
         // console.log('clicked remove', this.methodInBehavior(this.type));
       }
     }

@@ -77,7 +77,7 @@
       }
     </style>
     <h2>Credit Cards: </h2>
-    <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible">
+    <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible" sort="_cardSort">
       <template>
         <card-preview last4="[[item.last4]]" 
                       type="[[item.type]]" 
@@ -85,7 +85,8 @@
                       status="[[item.status]]" 
                       is-default="[[item.isDefault]]" 
                       can-remove="[[_canRemove(item, cards.length)]]"
-                      on-remove="_onRemoveCard"></card-preview>
+                      on-remove="_onRemoveCard"
+                      on-tag="_cardTagged"></card-preview>
       </template>
     </dom-repeat>
     <div id="payment-form">
@@ -162,8 +163,8 @@
             value: function() {
               return [
                 { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
-                { last4: '4242', expiry: '04/19', type: 'visa', canRemove: true, status: 'added', isDefault: false },
-                { last4: '4242', expiry: '04/19', type: 'amex', canRemove: true, status: 'active', isDefault: false }
+                { last4: '4242', expiry: '04/20', type: 'visa', canRemove: true, status: 'added', isDefault: false },
+                { last4: '4242', expiry: '04/18', type: 'amex', canRemove: true, status: 'active', isDefault: false }
               ];
             },
             notify: true
@@ -188,6 +189,18 @@
         var i = this.$.cardList.indexForElement(e.target);
         console.log('remove', item, i);
         this._removeCard(item);
+      }
+
+      _cardTagged(e) {
+        var item = this.$.cardList.itemForElement(e.target);
+        var i = this.$.cardList.indexForElement(e.target);
+        console.log('tag', item, i, e.detail);
+        if (!!e.detail.default) {
+          item.isDefault = true;
+          // this.set(`cards.${i}`, item);
+          this.notifySplices('cards')
+          // this.$.cardList.noitfyPath(`cards.${i}`);
+        }
       }
 
       _addCard(card) {
@@ -219,6 +232,21 @@
         var i = this._visibleStatuses.indexOf(item.status);
         console.log(item.last4, i);
         return i >= 0;
+      }
+
+      _cardSort(a, b) {
+        // default first
+        if (a.isDefault && b.isDefault) {
+          return a.expiry < b.expiry ? -1 : 1;
+        }
+        if (a.isDefault || b.isDefault) {
+          return a.isDefault ? -1 : 1;
+        }
+        if (a.isDefault == b.isDefault) {
+          if (a.expiry === b.expiry) return 0;
+          return a.expiry < b.expiry ? -1 : 1;
+        }
+        return a.expiry < b.expiry ? -1 : 1;
       }
 
       _canRemove(item, cardCount) {
