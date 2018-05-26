@@ -77,9 +77,15 @@
       }
     </style>
     <h2>Credit Cards: </h2>
-    <dom-repeat items="[[cards]]" filter="_isAdded">
+    <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible">
       <template>
-        <card-preview last4="[[item.last4]]" type="[[item.type]]" expiry="[[item.expiry]]" status="[[item.status]]" is-default="[[item.isDefault]]" can-remove="[[_canRemove(item)]]" on-remove="_removeCard"></card-preview>
+        <card-preview last4="[[item.last4]]" 
+                      type="[[item.type]]" 
+                      expiry="[[item.expiry]]" 
+                      status="[[item.status]]" 
+                      is-default="[[item.isDefault]]" 
+                      can-remove="[[_canRemove(item, cards.*)]]"
+                      on-remove="_onRemoveCard"></card-preview>
       </template>
     </dom-repeat>
     <div id="payment-form">
@@ -155,8 +161,9 @@
             type: Array,
             value: function() {
               return [
-                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'added', isDefault: true },
-                { last4: '4242', expiry: '04/19', type: 'visa', canRemove: true, status: 'added', isDefault: false }
+                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'active', isDefault: false },
+                { last4: '4242', expiry: '04/19', type: 'visa', canRemove: true, status: 'added', isDefault: false },
+                { last4: '4242', expiry: '04/19', type: 'amex', canRemove: true, status: 'active', isDefault: false }
               ];
             },
             notify: true
@@ -164,23 +171,60 @@
           publishableKey: {
             type: String,
             value: null
+          },
+          _visibleStatuses: {
+            type: Array,
+            value: ['added', 'active', 'pending', 'removing']
+          },
+          _removeableStatuses: {
+            type: Array,
+            value: ['added', 'active']
           }
         };
       }
 
-      _removeCard(e) {
-        console.log('remove', e);
-        //this.$.confirmDialog.toggle();
+      _onRemoveCard(e) {
+        var item = this.$.cardList.itemForElement(e.target);
+        var i = this.$.cardList.indexForElement(e.target);
+        console.log('remove', item, i);
+        this._removeCard(item);
       }
+
+      _addCard(card) {
+        var newCard = { 
+          last4: '1234', 
+          expiry: '12/22', 
+          type: 'mastercard', 
+          canRemove: true, 
+          status: 'active', 
+          isDefault: false };
+        this.push('cards', newCard);
+      }
+
+      _removeCard(card) {
+        if (!this._canRemove(card)) return;
+        var index = this.cards.indexOf(card);
+        console.log(card, index);
+        if (index > -1) {
+          this.splice('cards', index, 1);
+        } else {
+          console.log('can\'t remove the card');
+        }
+      }
+
       /*
       For card list filtering
       */
-      _isAdded(item) {
-        return (item.status || 'error') === 'added' || false;
+      _isVisible(item) {
+        var i = this._visibleStatuses.indexOf(item.status);
+        console.log(item.last4, i);
+        return i >= 0;
       }
 
-      _canRemove(item) {
-        return (item.status === 'added') && !item.isDefault && !!item.canRemove;
+      _canRemove(item, cards) {
+        var i = this._removeableStatuses.indexOf(item.status);
+        console.log(item.last4, i, item.isDefault, !item.canRemove);
+        return (this.cards.length > 1) && (i >= 0) && !item.isDefault && !!item.canRemove;
       }
 
     }

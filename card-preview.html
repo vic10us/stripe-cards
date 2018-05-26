@@ -246,12 +246,16 @@
           canRemove: {
             type: Boolean,
             value: false
+          },
+          status: {
+            type: String,
+            value: 'unknown'
           }
         };
       }
       _removeCard() {
         this.dispatchEvent(new CustomEvent('remove', {detail: {removed: true}, bubbles: true, composed: true}));
-        console.log('clicked remove', this.methodInBehavior(this.type));
+        // console.log('clicked remove', this.methodInBehavior(this.type));
       }
     }
 
