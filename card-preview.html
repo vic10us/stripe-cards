@@ -238,9 +238,13 @@
             type: Number,
             value: ''
           },
-          expiry: {
-            type: String,
-            value: ''
+          expiryYear: {
+            type: Number,
+            value: 1970
+          },
+          expiryMonth: {
+            type: Number,
+            value: 1
           },
           type: {
             type: String,
@@ -258,8 +262,17 @@
           status: {
             type: String,
             value: 'unknown'
+          },
+          expiry: {
+            type: String,
+            computed: '_expiryString(expiryYear, expiryMonth)'
           }
         };
+      }
+
+      _expiryString(year, month) {
+        let m = `${month}`.padStart(2,'0');
+        return `${m}/${year}`;
       }
 
       _swapIcon(e) {

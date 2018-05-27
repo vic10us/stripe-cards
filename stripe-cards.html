@@ -1,7 +1,8 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="./card-preview.html">
-<link rel="import" href="./stripe-import.html">
 <link rel="import" href="../polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="./stripe-script.html">
+<link rel="import" href="./stripe-elements.html">
 <link rel="import" href="../paper-fab/paper-fab.html">
 <link rel="import" href="../paper-dialog/paper-dialog.html">
 <link rel="import" href="../neon-animation/web-animations.html">
@@ -14,7 +15,11 @@
     <style>
       :host {
         display: block;
-        /* --card-preview-border: none; */
+        --stripe-elements-base-color: #32325d;
+        --stripe-elements-base-line-height: 18px;
+        --stripe-elements-base-font-family: "Roboto", "Noto", sans-serif;
+        --stripe-elements-base-font-smoothing: antialiased;
+        --stripe-elements-base-font-size: 14px;
         --card-preview-card-details: {
           border-radius: 0px;
           margin: 4px;
@@ -25,36 +30,12 @@
         float: right;
         background-color: #008cdd;
       }
-      
-      .StripeElement {
-        background-color: white;
-        /* height: 40px; */
-        padding: 10px 12px;
-        /* border-radius: 4px; */
-        border: 1px solid transparent;
-        box-shadow: 0 1px 3px 0 #bbbfc4;
-        -webkit-transition: box-shadow 150ms ease;
-        transition: box-shadow 150ms ease;
-        margin: 4px;
-      }
 
-      .StripeElement--focus {
-        box-shadow: 0 1px 3px 0 #cfd7df;
-      }
-
-      .StripeElement--invalid {
-        border-color: #fa755a;
-      }
-
-      .StripeElement--webkit-autofill {
-        background-color: #fefde5 !important;
-      }
-
-      .add-card-container {
+      .card-container {
         width: calc(100% - 82px);
         float: left;
       }
-      .add-card-container iframe {
+      .card-container iframe {
         width:100%;
       }
       .add-button {
@@ -81,23 +62,23 @@
       <template>
         <card-preview last4="[[item.last4]]" 
                       type="[[item.type]]" 
-                      expiry="[[item.expiry]]" 
+                      expiry-month="[[item.expiryMonth]]"
+                      expiry-year="[[item.expiryYear]]"
                       status="[[item.status]]" 
                       is-default="[[item.isDefault]]" 
                       can-remove="[[_canRemove(item, cards.length)]]"
                       on-remove="_onRemoveCard"
-                      on-tag="_cardTagged"></card-preview>
+                      on-tag="_onCardTagged"></card-preview>
       </template>
     </dom-repeat>
-    <div id="payment-form">
-      <div class="add-card-container">
-        <div id="card-element">
-          <!-- A Stripe Element will be inserted here. -->
-        </div>
-    
-        <!-- Used to display form errors. -->
-        <div id="card-errors" role="alert"></div>
-      </div>
+    <div id="add-card-container">
+        <stripe-elements
+            class="card-container"
+            id="stripe" 
+            stripe-ready="{{ready}}"
+            publishable-key="[[publishableKey]]"
+            token="{{token}}"
+        ></stripe-elements>
       <div class="add-button" style="position: relative" on-click="_addCard">Save
           <paper-ripple></paper-ripple>
       </div>
@@ -128,14 +109,17 @@
       
       constructor() {
         super();
-        this.stripe = Stripe(this.publishableKey || 'pk_test_6pRNASCoBOKtIshFeQd4XMUh');
-        this.elements = this.stripe.elements();
         this.elementStyle = {
           base: {
+            // --stripe-elements-base-color: '#32325d'
             color: '#32325d',
+            // --stripe-elements-base-line-height: '18px'
             lineHeight: '18px',
+            // --stripe-elements-base-font-family: '"Roboto", "Noto", sans-serif'
             fontFamily: '"Roboto", "Noto", sans-serif',
+            // --stripe-elements-base-font-smoothing: 'antialiased'
             fontSmoothing: 'antialiased',
+            // --stripe-elements-base-font-size: '14px'
             fontSize: '14px',
             '::placeholder': {
               color: '#aab7c4'
@@ -146,14 +130,15 @@
             iconColor: '#fa755a'
           }
         };
-        this.card = this.elements.create('card', {style: this.style});
       }
 
       connectedCallback() {
         super.connectedCallback();
-        const mount = this.root.getElementById("card-element");
-        // console.log(this.$.cardElement);
-        this.card.mount(mount);
+        // this.stripe = Stripe(this.publishableKey);
+        // this.elements = this.stripe.elements();
+        // this.card = this.elements.create('card', {style: this.style});
+        // const mount = this.root.getElementById("card-element");
+        // this.card.mount(mount);
       }
 
       static get properties() {
@@ -162,9 +147,9 @@
             type: Array,
             value: function() {
               return [
-                { last4: '1234', expiry: '12/22', type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
-                { last4: '4242', expiry: '04/20', type: 'visa', canRemove: true, status: 'added', isDefault: false },
-                { last4: '4242', expiry: '04/18', type: 'amex', canRemove: true, status: 'active', isDefault: false }
+                { last4: '1234', expiryMonth: 4, expiryYear: 2018, type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
+                { last4: '4242', expiryMonth: 4, expiryYear: 2022, type: 'visa', canRemove: true, status: 'active', isDefault: false },
+                { last4: '4242', expiryMonth: 4, expiryYear: 2019, type: 'amex', canRemove: true, status: 'pending', isDefault: false }
               ];
             },
             notify: true
@@ -187,41 +172,52 @@
       _onRemoveCard(e) {
         var item = this.$.cardList.itemForElement(e.target);
         var i = this.$.cardList.indexForElement(e.target);
-        console.log('remove', item, i);
         this._removeCard(item);
       }
 
-      _cardTagged(e) {
+      _onCardTagged(e) {
         var item = this.$.cardList.itemForElement(e.target);
         var i = this.$.cardList.indexForElement(e.target);
-        console.log('tag', item, i, e.detail);
         if (!!e.detail.default) {
+          this.cards.filter(x => x.isDefault).forEach(x => { x.isDefault = false; console.log(x); });
           item.isDefault = true;
-          // this.set(`cards.${i}`, item);
-          this.notifySplices('cards')
-          // this.$.cardList.noitfyPath(`cards.${i}`);
+          this.notifySplices('cards');
         }
       }
 
       _addCard(card) {
-        var newCard = { 
+        var newCard = {
           last4: '1234', 
           expiry: '12/22', 
           type: 'mastercard', 
           canRemove: true, 
           status: 'active', 
-          isDefault: false };
-        this.push('cards', newCard);
+          isDefault: false 
+        };
+        this.$.stripe.submit();
+        // this.stripe.createToken(this.card).then(function(result) {
+        // if (result.error) {
+        //     // Inform the user if there was an error.
+        //     var errorElement = document.getElementById('card-errors');
+        //     errorElement.textContent = result.error.message;
+        // } else {
+        //     // Send the token to your server.
+        //     this._stripeTokenHandler(result.token);
+        //   }
+        // });
+        // this.push('cards', newCard);
+      }
+
+      _stripeTokenHandler(token) {
+        console.log('Got Token:', token);
       }
 
       _removeCard(card) {
-        // if (!this._canRemove(card, this.cards.length)) return;
         var index = this.cards.indexOf(card);
-        console.log(card, index);
         if (index > -1) {
           this.splice('cards', index, 1);
         } else {
-          console.log('can\'t remove the card');
+          console.warn('can\'t remove the card');
         }
       }
 
@@ -230,28 +226,33 @@
       */
       _isVisible(item) {
         var i = this._visibleStatuses.indexOf(item.status);
-        console.log(item.last4, i);
         return i >= 0;
+      }
+
+      expiryDate(year, month) {
+        let m = `${month}`.padStart(2,'0');
+        return `${year}${m}`*1;
       }
 
       _cardSort(a, b) {
         // default first
+        let ae = this.expiryDate(a.expiryYear, a.expiryMonth);
+        let be = this.expiryDate(b.expiryYear, b.expiryMonth);
         if (a.isDefault && b.isDefault) {
-          return a.expiry < b.expiry ? -1 : 1;
+          return ae < be ? -1 : 1;
         }
         if (a.isDefault || b.isDefault) {
           return a.isDefault ? -1 : 1;
         }
         if (a.isDefault == b.isDefault) {
-          if (a.expiry === b.expiry) return 0;
-          return a.expiry < b.expiry ? -1 : 1;
+          if (ae === be) return 0;
+          return ae < be ? -1 : 1;
         }
-        return a.expiry < b.expiry ? -1 : 1;
+        return ae < be ? -1 : 1;
       }
 
       _canRemove(item, cardCount) {
         var i = this._removeableStatuses.indexOf(item.status);
-        console.log(cardCount, item.last4, i, item.isDefault, !item.canRemove);
         return (cardCount > 1) && (i >= 0) && !item.isDefault && !!item.canRemove;
       }
 
