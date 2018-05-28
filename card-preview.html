@@ -11,12 +11,16 @@
         --default-card-preview-border: solid 1px transparent;
         --card-preview-border-0: var(--card-preview-border, var(--default-card-preview-border));
       }
+
       :host[hidden] {
+        opacity: 0;
 				display: none;
 			}
+
       iron-icon {
         height: 16px;
       }
+      
       .amex {
         width: 43px;
         min-width: 43px;
@@ -78,6 +82,10 @@
       }
 
       .card-details {
+        -webkit-user-select: none; /* Safari */        
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+        user-select: none; /* Standard */
         height: 21px;
         border: var(--card-preview-border-0);
         border-radius: 5px;
@@ -86,20 +94,22 @@
         padding: 5px;
         padding-top: 9px;
         padding-bottom: 9px;
-        min-width: 320px;
+        min-width: 270px;
         box-shadow: 0 1px 3px 0 #bbbfc4;
         -webkit-transition: box-shadow 150ms ease;
         transition: box-shadow 150ms ease;
+        position: relative;
         @apply --card-preview-card-details;
       }
 
       .card-details:hover {
-        cursor: pointer;
+        cursor: default;
       }
 
       .card-logo {
         margin-left: 10px;
         background-repeat: no-repeat;
+        width: 45px;
       }
 
       .last-four {
@@ -114,99 +124,47 @@
         @apply --layout-flex;
         @apply --layout-self-center;
       }
-      
-      .remove-button {
-        color: var(--paper-blue-500);
-        @apply --layout-self-center;
-        @apply --paper-font-body1;
-        margin-right: 10px;
-      }
-
-      .remove-button:hover {
-        color: var(--paper-blue-900);
-        @apply --paper-font-body2;
-      }
-
-      .item-row .item-parent.default-source .db-CardsList-cell-default .badge {
-        display: inline-block;
-      }
-      
-      .item-cell[default-card='false'] {
-        display: none;
-      }
-
-      .item-cell .badge--small {
-        top: 1px;
-      }
-
-      .item-cell .badge {
-        vertical-align: top;
-      }
-
-      .item-cell {
-        -position: relative;
-        -display: table-cell;
-        -padding: 9px 5px;
-        color: var(--stripe-card-preview-hover-color, #4c555a);
-        font-weight: 400;
-        line-height: 16px;
-        vertical-align: top;
-        white-space: nowrap;
-      }
-
-      .badge {
-        position: relative;
-        display: inline-block;
-        height: 15px;
-        margin-left: 3px;
-        padding: 0 7px;
-        background-color: transparent;
-        border-radius: 14px;
-        border: 1px solid hsla(199,8%,47%,.4);
-        line-height: 16px;
-        text-transform: uppercase;
-        vertical-align: text-bottom;
-        font-size: 12px;
-      }
-
-      .badge, .badge--solid {
-        font-weight: 400;
-        color: #6f7c82;
-      }
-
-      .badge--solid {
-        background-color:  var(--stripe-card-preview-hover-color, #6f7c82);
-        border-color:  var(--stripe-card-preview-hover-color, #6f7c82);
-        border-radius: 3px;
-        color: #fff;
-      }
-
-      .card-details:not(:hover) .badge--solid.badge--blue {
-        background-color: var(--stripe-card-preview-color,#008cdd);
-        border-color: var(--stripe-card-preview-color,#008cdd);
-      }
 
       .default,
       .star:hover {
+        cursor: pointer;
         fill:#f3b70b;
       }
 
+      .default {
+        cursor: default;
+      }
+
       .remove:hover {
+        cursor: pointer;
         fill: #ff0000;
       }
 
     </style>
 
-    <div class="card-details">
+    <div class="card-details container flex-horizontal">
       <div class$="card-logo [[type]]">&nbsp;</div>
       <div class="last-four">&#9679;&#9679;&#9679;&#9679; [[last4]]</div>
       <div class="expiry-date">[[expiry]]</div>
-      <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_removeCard" on-mouseenter="_swapIcon" on-mouseleave="_returnIcon"></iron-icon>
+      <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_confirmDelete" on-mouseenter="_swapIcon" on-mouseleave="_returnIcon"></iron-icon>
       <iron-icon hidden$="[[isDefault]]" icon="icons:star-border" class="star" on-click="_tagCard"></iron-icon>
       <iron-icon hidden$="[[!isDefault]]" icon="icons:star" class="default"></iron-icon>
+      <paper-ripple></paper-ripple>
       <!-- <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_removeCard"></iron-icon> -->
     </div>
-    
+    <paper-dialog 
+      id="confirmDelete" 
+      entry-animation="scale-up-animation"
+      exit-animation="fade-out-animation"
+      on-iron-overlay-closed="_confirmDeleteClosed"
+    >
+      <h2>Delete Card</h2>
+      <p>Are you sure?</p>
+      <div class="buttons">
+          <paper-button dialog-confirm>Yes</paper-button>
+          <paper-button dialog-dismiss>No</paper-button>
+      </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -282,15 +240,21 @@
       _returnIcon(e) {
         e.target.icon = 'icons:remove-circle-outline';
       }
+      
+      _confirmDelete() {
+        this.$.confirmDelete.open();
+      }
+
+      _confirmDeleteClosed(e) {
+        if (e.detail.confirmed) this._removeCard();
+      }
 
       _removeCard() {
         this.dispatchEvent(new CustomEvent('remove', {detail: {removed: true}, bubbles: true, composed: true}));
-        // console.log('clicked remove', this.methodInBehavior(this.type));
       }
 
       _tagCard() {
         this.dispatchEvent(new CustomEvent('tag', {detail: {default: true}, bubbles: true, composed: true}));
-        // console.log('clicked remove', this.methodInBehavior(this.type));
       }
     }
 

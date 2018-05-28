@@ -1,5 +1,6 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="./card-preview.html">
+<link rel="import" href="./no-card.html">
 <link rel="import" href="../polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="./stripe-script.html">
 <link rel="import" href="./stripe-elements.html">
@@ -9,6 +10,7 @@
 <link rel="import" href="../neon-animation/animations/scale-up-animation.html">
 <link rel="import" href="../neon-animation/animations/fade-out-animation.html">
 <link rel="import" href="../neon-animation/animations/fade-in-animation.html">
+<link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 
 <dom-module id="stripe-cards">
   <template>
@@ -35,9 +37,11 @@
         width: calc(100% - 82px);
         float: left;
       }
+
       .card-container iframe {
         width:100%;
       }
+
       .add-button {
         width: 72px;
         margin: 4px;
@@ -53,14 +57,29 @@
         float: left;
         cursor: pointer;
       }
+
       .clearfix {
         clear: both;
       }
+      
+      no-card {
+        opacity: 1;
+        display: block;
+        visibility: visible;
+        transition: visibility 0s, opacity 0.5s linear;
+      }
+
+      *[hidden] {
+        visibility: hidden;
+        display: none;
+        opacity: 0;
+      }
     </style>
-    <h2>Credit Cards: </h2>
+    <h2>[[titleString]]</h2>
+    <no-card hidden$="[[!_noCards(cards.length)]]">No Cards!!!</no-card>
     <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible" sort="_cardSort">
       <template>
-        <card-preview last4="[[item.last4]]" 
+        <card-preview last4="[[item.last4]]"
                       type="[[item.type]]" 
                       expiry-month="[[item.expiryMonth]]"
                       expiry-year="[[item.expiryYear]]"
@@ -81,11 +100,8 @@
             on-stripe-error="_handleTokenError"
             on-stripe-token="_handleTokenResponse"
         ></stripe-elements>
-        <paper-button class="add-button" on-click="_hideAddCard">Cancel</paper-button>
+        <paper-button class="add-button" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]">Cancel</paper-button>
         <paper-button class="add-button cancel-button" on-click="_onAddCard">Save</paper-button>
-      <!-- <div class="add-button" style="position: relative" on-click="_addCard">Save
-          <paper-ripple></paper-ripple>
-      </div> -->
       <div class="clearfix"></div>
     </div>
     <div hidden$="[[_isAdding]]">
@@ -93,11 +109,6 @@
     </div>
     <div class="clearfix"></div>
 
-    <paper-dialog id="confirmDialog" entry-animation="scale-up-animation"
-                  exit-animation="fade-out-animation">
-      <h2>Header</h2>
-      <div>Dialog body</div>
-    </paper-dialog>
   </template>
 
   <script>
@@ -114,48 +125,22 @@
       
       constructor() {
         super();
-        this.elementStyle = {
-          base: {
-            // --stripe-elements-base-color: '#32325d'
-            color: '#32325d',
-            // --stripe-elements-base-line-height: '18px'
-            lineHeight: '18px',
-            // --stripe-elements-base-font-family: '"Roboto", "Noto", sans-serif'
-            fontFamily: '"Roboto", "Noto", sans-serif',
-            // --stripe-elements-base-font-smoothing: 'antialiased'
-            fontSmoothing: 'antialiased',
-            // --stripe-elements-base-font-size: '14px'
-            fontSize: '14px',
-            '::placeholder': {
-              color: '#aab7c4'
-            }
-          },
-          invalid: {
-            color: '#fa755a',
-            iconColor: '#fa755a'
-          }
-        };
       }
 
       connectedCallback() {
         super.connectedCallback();
-        // this.stripe = Stripe(this.publishableKey);
-        // this.elements = this.stripe.elements();
-        // this.card = this.elements.create('card', {style: this.style});
-        // const mount = this.root.getElementById("card-element");
-        // this.card.mount(mount);
       }
 
       static get properties() {
         return {
+          titleString: {
+            type: String,
+            value: 'Credit Cards: '
+          },
           cards: {
             type: Array,
             value: function() {
-              return [
-                { last4: '1234', expiryMonth: 4, expiryYear: 2018, type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
-                { last4: '4242', expiryMonth: 4, expiryYear: 2022, type: 'visa', canRemove: true, status: 'active', isDefault: false },
-                { last4: '4242', expiryMonth: 4, expiryYear: 2019, type: 'amex', canRemove: true, status: 'pending', isDefault: false }
-              ];
+              return [];
             },
             notify: true
           },
@@ -178,6 +163,10 @@
         };
       }
 
+      _canCancel(length) {
+        return length > 0;
+      }
+
       _onRemoveCard(e) {
         var item = this.$.cardList.itemForElement(e.target);
         var i = this.$.cardList.indexForElement(e.target);
@@ -193,7 +182,7 @@
           this.notifySplices('cards');
         }
       }
-      
+
       _addCard(card) {
         var newCard = {
           last4: card.last4, 
@@ -267,6 +256,11 @@
       _hideAddCard() {
         this._isAdding = false;
         this.resetCard();
+      }
+
+      _noCards(cardCount) {
+        console.log('_noCards', cardCount, cardCount <= 0);
+        return cardCount <= 0;
       }
 
       _canRemove(item, cardCount) {
