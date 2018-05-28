@@ -1,0 +1,91 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+
+<dom-module id="no-card">
+  <template>
+    <style>
+      :host {
+        display: block;
+        opacity: 1;
+        position: relative;
+        white-space: nowrap;
+        --default-card-preview-border: solid 1px transparent;
+        --card-preview-border-0: var(--card-preview-border, var(--default-card-preview-border));
+      }
+
+      :host[hidden] {
+        opacity: 0;
+				display: none;
+			}
+      
+      .container {
+        height: 21px;
+        border: var(--card-preview-border-0);
+        border-radius: 5px;
+        @apply --layout-horizontal;
+        background-color: var(--card-preview-background, #fff);
+        padding: 5px;
+        padding-top: 9px;
+        padding-bottom: 9px;
+        min-width: 270px;
+        box-shadow: 0 1px 3px 0 #bbbfc4;
+        -webkit-transition: box-shadow 150ms ease;
+        transition: box-shadow 150ms ease;
+        position: relative;
+        @apply --card-preview-card-details;
+      }
+
+      .container:hover {
+        cursor: default;
+      }
+
+      .card {
+        -webkit-user-select: none; /* Safari */        
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+        user-select: none; /* Standard */
+        text-align: center;
+        width: 100%;
+        font-weight: 500;
+        line-height: 21px;
+      }
+    </style>
+
+    <div class="container" hidden$="[[!visible]]">
+      <div class="card">
+        <slot></slot>
+      </div>
+      <paper-ripple></paper-ripple>
+    </div>
+    
+  </template>
+
+  <script>
+
+     /**
+     * `no-card`
+     * Manage your stripe cards
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class NoCard extends Polymer.Element {
+      static get is() { return 'no-card'; }
+      static get properties() {
+        return {
+          message: {
+            type: String,
+            value: 'no card(s) on file.'
+          },
+          visible: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+    }
+
+    window.customElements.define(NoCard.is, NoCard);
+  </script>
+</dom-module>

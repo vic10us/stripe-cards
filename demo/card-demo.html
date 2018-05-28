@@ -1,0 +1,66 @@
+<link rel="import" href="../../polymer/polymer-element.html">
+<link rel="import" href="../stripe-cards.html">
+
+<dom-module id="card-demo">
+  <template>
+    <style>
+      :host {
+        display: block;
+        opacity: 1;
+        position: relative;
+        white-space: nowrap;
+        --default-card-preview-border: solid 1px transparent;
+        --card-preview-border-0: var(--card-preview-border, var(--default-card-preview-border));
+      }
+    </style>
+
+    <stripe-cards title-string="Super Cards: " cards="{{cards}}" publishable-key="pk_test_6pRNASCoBOKtIshFeQd4XMUh"></stripe-cards>
+    <paper-button on-click="_loadDummyCards">Load Dummy Cards</paper-button>
+    <paper-button on-click="reset">Reset</paper-button>
+  </template>
+
+  <script>
+
+     /**
+     * `no-card`
+     * Manage your stripe cards
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class CardDemo extends Polymer.Element {
+      static get is() { return 'card-demo'; }
+      static get properties() {
+        return {
+          cards: {
+            type: Array,
+            value: function() {
+                return [];
+            }
+          },
+          dummyCards: {
+            type: Array,
+                value:[
+                { last4: '1234', expiryMonth: 4, expiryYear: 2018, type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
+                { last4: '4242', expiryMonth: 4, expiryYear: 2022, type: 'visa', canRemove: true, status: 'active', isDefault: false },
+                { last4: '4242', expiryMonth: 4, expiryYear: 2019, type: 'amex', canRemove: true, status: 'pending', isDefault: false }
+            ]
+          }
+        };
+      }
+
+      _loadDummyCards() {
+        this.set('cards', Object.assign([], this.dummyCards));
+        //this.cards = this.dummyCards;
+      }
+
+      reset() {
+          this.set('cards', []);
+      }
+
+    }
+
+    window.customElements.define(CardDemo.is, CardDemo);
+  </script>
+</dom-module>
