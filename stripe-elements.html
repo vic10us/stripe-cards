@@ -397,7 +397,7 @@
     handleError(error) {
       const bubbles = true;
       const composed = true;
-      this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+      this.dispatchEvent(new ErrorEvent('stripe-error', { error, bubbles, composed }));
       // Show error in UI
       this._setError(error.message);
     }
@@ -413,10 +413,10 @@
       const composed = true;
       if (error) {
         this._setError(error);
-        this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+        this.dispatchEvent(new ErrorEvent('stripe-error', { error, bubbles, composed }));
       } else {
         this._setToken(token);
-        this.dispatchEvent(new CustomEvent('stripe-token', {token, bubbles, composed}));
+        this.dispatchEvent(new CustomEvent('stripe-token', { detail: { token }, bubbles, composed }));
         // Submit the form
         this.action && this.$.form.submit();
       }
