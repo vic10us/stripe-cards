@@ -71,21 +71,26 @@
                       on-tag="_onCardTagged"></card-preview>
       </template>
     </dom-repeat>
-    <div id="add-card-container">
+    <div id="add-card-container" hidden$="[[!_isAdding]]">
         <stripe-elements
             class="card-container"
             id="stripe" 
             stripe-ready="{{ready}}"
             publishable-key="[[publishableKey]]"
             token="{{token}}"
+            on-stripe-error="_handleTokenError"
+            on-stripe-token="_handleTokenResponse"
         ></stripe-elements>
-      <div class="add-button" style="position: relative" on-click="_addCard">Save
+        <paper-button class="add-button" on-click="_hideAddCard">Cancel</paper-button>
+        <paper-button class="add-button cancel-button" on-click="_onAddCard">Save</paper-button>
+      <!-- <div class="add-button" style="position: relative" on-click="_addCard">Save
           <paper-ripple></paper-ripple>
-      </div>
+      </div> -->
       <div class="clearfix"></div>
     </div>
-
-    <paper-fab mini icon="icons:add" class="add-fab"></paper-fab>
+    <div hidden$="[[_isAdding]]">
+      <paper-fab id="add-fab" mini icon="icons:add" class="add-fab" on-click="_showAddCard"></paper-fab>
+    </div>
     <div class="clearfix"></div>
 
     <paper-dialog id="confirmDialog" entry-animation="scale-up-animation"
@@ -165,6 +170,10 @@
           _removeableStatuses: {
             type: Array,
             value: ['added', 'active']
+          },
+          _isAdding: {
+            type: Boolean,
+            value: false
           }
         };
       }
@@ -184,28 +193,22 @@
           this.notifySplices('cards');
         }
       }
-
+      
       _addCard(card) {
         var newCard = {
-          last4: '1234', 
-          expiry: '12/22', 
-          type: 'mastercard', 
+          last4: card.last4, 
+          expiryMonth: card['exp_month'],
+          expiryYear: card['exp_year'],
+          type: card.brand.toLowerCase(), 
           canRemove: true, 
-          status: 'active', 
-          isDefault: false 
+          status: 'active',
+          isDefault: false
         };
+        this.push('cards', newCard);
+      }
+
+      _onAddCard(e) {
         this.$.stripe.submit();
-        // this.stripe.createToken(this.card).then(function(result) {
-        // if (result.error) {
-        //     // Inform the user if there was an error.
-        //     var errorElement = document.getElementById('card-errors');
-        //     errorElement.textContent = result.error.message;
-        // } else {
-        //     // Send the token to your server.
-        //     this._stripeTokenHandler(result.token);
-        //   }
-        // });
-        // this.push('cards', newCard);
       }
 
       _stripeTokenHandler(token) {
@@ -251,9 +254,40 @@
         return ae < be ? -1 : 1;
       }
 
+      _showAddCard() {
+        var element1 = this.$['add-fab'];
+        var element2 = this.$['add-card-container'];
+        this._isAdding = true;
+      }
+
+      resetCard() {
+        this.$.stripe.reset();
+      }
+
+      _hideAddCard() {
+        this._isAdding = false;
+        this.resetCard();
+      }
+
       _canRemove(item, cardCount) {
         var i = this._removeableStatuses.indexOf(item.status);
         return (cardCount > 1) && (i >= 0) && !item.isDefault && !!item.canRemove;
+      }
+
+      _handleTokenResponse(e) {
+        console.log('TokenReponse: ', e.detail.token);
+        const bubbles = true;
+        const composed = true;
+        // this._addCard(e.detail.token.card);
+        this.dispatchEvent(new CustomEvent('card-token', {detail: { token: e.detail.token }, bubbles, composed}));
+        this._hideAddCard();
+      }
+
+      _handleTokenError(e) {
+        console.log('TokenError: ', e);
+        const bubbles = true;
+        const composed = true;
+        this.dispatchEvent(new CustomEvent('card-error', {detail: { error: e.detail.error }, bubbles, composed}));
       }
 
     }
