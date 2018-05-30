@@ -1,4 +1,5 @@
 <link rel="import" href="../../polymer/polymer-element.html">
+<link rel="import" href="../../iron-ajax/iron-ajax.html">
 <link rel="import" href="../stripe-cards.html">
 
 <dom-module id="card-demo">
@@ -12,11 +13,90 @@
         --default-card-preview-border: solid 1px transparent;
         --card-preview-border-0: var(--card-preview-border, var(--default-card-preview-border));
       }
+      paper-dialog.error {
+        /* position: fixed;
+        top: 16px;
+        right: 16px; */
+        max-width: 600px;
+        /* height: 300px; */
+        /* overflow: auto; */
+        white-space: normal !important;
+      }
+      .errorIcon {
+        --iron-icon-height: 48px;
+        --iron-icon-width: 48px;
+        color: red;
+        float: left;
+        padding: 0 10px 0 0;
+      }
     </style>
 
-    <stripe-cards title-string="Super Cards: " cards="{{cards}}" publishable-key="pk_test_6pRNASCoBOKtIshFeQd4XMUh"></stripe-cards>
+    <stripe-cards 
+        id="stripeCards"
+        title-string="Credit Cards:" 
+        cards="{{cards}}" 
+        publishable-key="pk_test_O1oRNFJ6xf9F3JidCdMPH0yL"
+        on-card-token="_onCardToken"
+        on-remove="_onCardRemove"
+        on-tag="_onCardTagged"
+        ></stripe-cards>
+    <paper-button on-click="_loadCards">Load Cards</paper-button>
     <paper-button on-click="_loadDummyCards">Load Dummy Cards</paper-button>
     <paper-button on-click="reset">Reset</paper-button>
+    <iron-ajax
+        id="getCards"
+        method="GET"
+        url="[[apiUrl]]"
+        handle-as"json"
+        with-credentials
+        last-response="{{_apiCards}}"
+        on-response="_handleGetCardResponse"
+        on-error="_handleGetCardError"
+    ></iron-ajax>
+    <iron-ajax
+        id="addCard"
+        method="POST"
+        with-credentials
+        url="https://localhost.acquisio.com/api/v1/cards"
+        handle-as"json"
+        on-response="_handleAddCardResponse"
+        on-error="_handleAddCardError"
+    ></iron-ajax>
+    <iron-ajax
+        id="makeDefaultCard"
+        method="POST"
+        with-credentials
+        url="https://localhost.acquisio.com/api/v1/cards/:id:/default"
+        handle-as"json"
+        on-response="_handleMakeDefaultCardResponse"
+        on-error="_handleMakeDefaultCardError"
+    ></iron-ajax>
+    <iron-ajax
+        id="deleteCard"
+        method="DELETE"
+        with-credentials
+        url="https://localhost.acquisio.com/api/v1/cards/:id:"
+        handle-as"json"
+        on-response="_handleDeleteCardResponse"
+        on-error="_handleDeleteCardError"
+    ></iron-ajax>
+    <paper-dialog 
+        id="errorDialog" 
+        class="error" 
+        horizontal-align="center" 
+        horizontal-offset="-40" 
+        vertical-align="top" 
+        on-iron-overlay-closed="_onDialogClosed"
+        modal>
+        <h2>[[lastErrorTitle]]</h2>
+        <p style="position: relative;">
+            <iron-icon class="errorIcon" icon="error"></iron-icon>
+            <span>[[lastErrorMessage]]</span>
+        </p>
+        <div class="buttons">
+            <paper-button dialog-confirm>Dismiss</paper-button>
+        </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -36,27 +116,199 @@
           cards: {
             type: Array,
             value: function() {
-                return [];
+              return [];
+            }
+          },
+          _apiCards: {
+            type: Array,
+            value: function() {
+              return [];
             }
           },
           dummyCards: {
             type: Array,
-                value:[
-                { last4: '1234', expiryMonth: 4, expiryYear: 2018, type: 'mastercard', canRemove: true, status: 'active', isDefault: true },
-                { last4: '4242', expiryMonth: 4, expiryYear: 2022, type: 'visa', canRemove: true, status: 'active', isDefault: false },
-                { last4: '4242', expiryMonth: 4, expiryYear: 2019, type: 'amex', canRemove: true, status: 'pending', isDefault: false }
-            ]
+            value:[
+              { last4: '1234', expiryMonth: 4, expiryYear: 2018, canRemove: true, type: 'mastercard', status: 'active', isDefault: true },
+              { last4: '4242', expiryMonth: 4, expiryYear: 2022, canRemove: true, type: 'visa', status: 'active', isDefault: false },
+              { last4: '4242', expiryMonth: 4, expiryYear: 2019, canRemove: true, type: 'amex', status: 'pending', isDefault: false }
+            ],
+            readonly: true
+          },
+          apiUrl: {
+            type: String,
+            value: 'https://localhost.acquisio.com/api/v1/cards'
           }
         };
       }
 
       _loadDummyCards() {
-        this.set('cards', Object.assign([], this.dummyCards));
+        this.set('cards', []);
+        var newarr = this.dummyCards.map(c => { return Object.assign({}, c) });
+        this.set('cards', [...newarr]);
         //this.cards = this.dummyCards;
       }
 
+      _onCardToken(e) {
+        console.log('got token', e.detail.token);
+        var api = this.$.addCard;
+        api.url = `${this.apiUrl}/${e.detail.token.id}`;
+        this._setLoading(true);
+        api.generateRequest();
+      }
+
+      _onCardRemove(e) {
+        console.log('card-remove', e.detail);
+        if (e.detail.removed) {
+          var cardId = e.detail.id;
+          var api = this.$.deleteCard;
+          api.url = `${this.apiUrl}/${cardId}`;
+          this._setLoading(true);
+          api.generateRequest();
+        }
+      }
+
+      _onCardTagged(e) {
+        var item = this.cards.find(x => x.id === e.detail.id);
+        var i = this.cards.findIndex(x => x.id === e.detail.id);
+        if (i < 0) return;
+        console.log('card-tagged', e.detail, item);
+        if (!!e.detail.default) {
+          var api = this.$.makeDefaultCard;
+          api.url = `${this.apiUrl}/${item.id}/default`;
+          this._setLoading(true);
+          api.generateRequest();
+        //   this.cards.filter(x => x.isDefault).forEach(x => { x.isDefault = false; console.log(x); });
+        //   item.isDefault = true;
+        //   this.notifySplices('cards');
+        }
+      }
+
+      _setLoading(b) {
+        this.$.stripeCards.loading = b;
+      }
+
+      _loadCards() {
+        var api = this.$.getCards;
+        this._setLoading(true);
+        api.generateRequest();
+      }
+
+      _setDefaultCard(cardId) {
+        var item = this.cards.find(x => x.id === cardId);
+        var i = this.cards.findIndex(x => x.id === cardId);
+        if (i < 0) return;
+        if (item.isDefault) return;
+        this.cards.filter(x => x.isDefault).forEach(x => { x.isDefault = false; console.log(x); });
+        item.isDefault = true;
+        this.notifySplices('cards');
+      }
+
+      _removeCard(cardId) {
+        var item = this.cards.find(x => x.id === cardId);
+        var i = this.cards.findIndex(x => x.id === cardId);
+        if (i < 0) return;
+        this.splice('cards', i, 1);
+      }
+
+      _handleGetCardResponse(e) {
+        console.log(e, this._apiCards);
+        if (e.detail.succeeded) {
+          var cards = e.detail.response.map(y => {
+            return {
+              id: y.id,
+              type: y.brand.toLowerCase(),
+              expiryYear: y.expYear,
+              expiryMonth: y.expMonth,
+              last4: y.last4,
+              isDefault: y.isDefault,
+              status: 'active',
+              canRemove: true
+            };
+          });
+          console.log('Got',cards);
+          this._setLoading(false);
+          this.set('cards', [...cards]);
+        }
+      }
+
+      _handleGetCardError(e) {
+        console.log('error', e);
+        var error = e.detail.request.xhr.response;
+        this.lastErrorTitle = error.message;
+        this.lastErrorMessage = error.exceptionMessage;
+        this.$.errorDialog.open();
+      }
+
+      _handleAddCardResponse(e) {
+        if (e.detail.succeeded) {
+          console.log('success', e, e.detail.response);
+          var y = e.detail.response;
+          var newCard = {
+              id: y.id,
+              type: y.brand.toLowerCase(),
+              expiryYear: y.expYear,
+              expiryMonth: y.expMonth,
+              last4: y.last4,
+              isDefault: y.isDefault,
+              status: 'active',
+              canRemove: true
+            };
+          this.push('cards', newCard);
+          this.notifySplices('cards');
+          this._setLoading(false);
+        }
+      }
+
+      _handleAddCardError(e) {
+        console.log('error', e);
+        var error = e.detail.request.xhr.response;
+        this.lastErrorTitle = error.message;
+        this.lastErrorMessage = error.exceptionMessage;
+        this.$.errorDialog.open();
+      }
+
+      _handleMakeDefaultCardResponse(e) {
+        if (e.detail.succeeded) {
+          console.log('success', e, e.detail.response);
+          if (e.detail.response.success) {
+            this._setDefaultCard(e.detail.response.id);
+          }
+        }
+        this._setLoading(false);
+      }
+
+      _handleMakeDefaultCardError(e) {
+        console.log('error', e);
+        var error = e.detail.request.xhr.response;
+        this.lastErrorTitle = error.message;
+        this.lastErrorMessage = error.exceptionMessage;
+        this.$.errorDialog.open();
+      }
+
+      _handleDeleteCardResponse(e) {
+        if (e.detail.succeeded) {
+          console.log('success', e, e.detail.response);
+          if (e.detail.response.success) {
+            this._removeCard(e.detail.response.id);
+          }
+        }
+        this._setLoading(false);
+      }
+
+      _handleDeleteCardError(e) {
+        console.log('error', e);
+        var error = e.detail.request.xhr.response;
+        this.lastErrorTitle = error.message;
+        this.lastErrorMessage = error.exceptionMessage;
+        this.$.errorDialog.open();
+      }
+
       reset() {
-          this.set('cards', []);
+        this.set('cards', []);
+      }
+
+      _onDialogClosed() {
+        this._setLoading(false);
       }
 
     }

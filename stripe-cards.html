@@ -6,6 +6,7 @@
 <link rel="import" href="./stripe-elements.html">
 <link rel="import" href="../paper-fab/paper-fab.html">
 <link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
 <link rel="import" href="../neon-animation/web-animations.html">
 <link rel="import" href="../neon-animation/animations/scale-up-animation.html">
 <link rel="import" href="../neon-animation/animations/fade-out-animation.html">
@@ -27,35 +28,44 @@
           margin: 4px;
         };
       }
-
+      
       .add-fab {
         float: right;
+        margin: 4px;
         background-color: #008cdd;
       }
 
-      .card-container {
-        width: calc(100% - 82px);
-        float: left;
+      .flex-horizontal {
+        @apply --layout-horizontal;
       }
 
+      .flex-child {
+        @apply --layout-flex;
+      }
+      
       .card-container iframe {
         width:100%;
       }
 
-      .add-button {
-        width: 72px;
-        margin: 4px;
-        height: 37px;
-        line-height: 37px;
-        text-align: center;
-        background-color: #008cdd;
-        color: #fff;
-        border: solid 1px transparent;
-        box-shadow: 2px 2px 3px 0px #bbbfc4;
-        -webkit-transition: box-shadow 150ms ease;
-        transition: box-shadow 150ms ease;
-        float: left;
-        cursor: pointer;
+      paper-icon-button {
+        -webkit-transition: color 0.25s ease; /* Safari */
+        transition: color 0.25s ease;
+      }
+
+      .ok-button {
+        margin: 4px 0 4px 0;
+      }
+
+      .ok-button:hover {
+        color: var(--paper-green-500);
+      }
+
+      .cancel-button {
+        margin: 4px 0 4px 0;
+      }
+
+      .cancel-button:hover {
+        color: var(--paper-red-500);
       }
 
       .clearfix {
@@ -66,7 +76,7 @@
         opacity: 1;
         display: block;
         visibility: visible;
-        transition: visibility 0s, opacity 0.5s linear;
+        transition: visibility 0.5s ease, opacity 0.5s linear, display 0.5s ease;
       }
 
       *[hidden] {
@@ -74,41 +84,70 @@
         display: none;
         opacity: 0;
       }
+      .container {
+        position: relative;
+      }
+      .cover {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background-color: rgba(255,255,255,0.8);
+      }
+      .loader {
+        height: 32px;
+        width: 32px;
+        top: 50%;
+        left: 50%;
+      }
+      .show {
+        display: block;
+      }
     </style>
-    <h2>[[titleString]]</h2>
-    <no-card hidden$="[[!_noCards(cards.length)]]">No Cards!!!</no-card>
-    <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible" sort="_cardSort">
-      <template>
-        <card-preview last4="[[item.last4]]"
-                      type="[[item.type]]" 
-                      expiry-month="[[item.expiryMonth]]"
-                      expiry-year="[[item.expiryYear]]"
-                      status="[[item.status]]" 
-                      is-default="[[item.isDefault]]" 
-                      can-remove="[[_canRemove(item, cards.length)]]"
-                      on-remove="_onRemoveCard"
-                      on-tag="_onCardTagged"></card-preview>
-      </template>
-    </dom-repeat>
-    <div id="add-card-container" hidden$="[[!_isAdding]]">
-        <stripe-elements
-            class="card-container"
-            id="stripe" 
-            stripe-ready="{{ready}}"
-            publishable-key="[[publishableKey]]"
-            token="{{token}}"
-            on-stripe-error="_handleTokenError"
-            on-stripe-token="_handleTokenResponse"
-        ></stripe-elements>
-        <paper-button class="add-button" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]">Cancel</paper-button>
-        <paper-button class="add-button cancel-button" on-click="_onAddCard">Save</paper-button>
+    <div class="container">
+      <div class="cover" hidden$="[[!loading]]">
+        <paper-spinner class="loader" active></paper-spinner>
+      </div>
+      <h2>[[titleString]]</h2>
+      <no-card hidden$="[[!_noCards(cards.length, _isAdding)]]">... no credit card on file ...</no-card>
+      <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible" sort="_cardSort">
+        <template>
+          <card-preview 
+            id="[[item.id]]"
+            last4="[[item.last4]]"
+            type="[[item.type]]" 
+            expiry-month="[[item.expiryMonth]]"
+            expiry-year="[[item.expiryYear]]"
+            status="[[item.status]]" 
+            is-default="[[item.isDefault]]" 
+            can-remove="[[_canRemove(item, cards.length)]]"
+            on-remove="_onRemoveCard"
+            on-tag="_onCardTagged"></card-preview>
+        </template>
+      </dom-repeat>
+      <div class="container flex-horizontal" id="add-card-container" hidden$="[[!_isAdding]]">
+          <stripe-elements
+              class="card-container flex-child"
+              id="stripe" 
+              stripe-ready="{{ready}}"
+              publishable-key="[[publishableKey]]"
+              token="{{token}}"
+              on-stripe-error="_handleTokenError"
+              on-stripe-token="_handleTokenResponse"
+          ></stripe-elements>
+          <paper-icon-button class="ok-button" icon="check"  on-click="_onAddCard"></paper-icon-button>
+          <paper-icon-button class="cancel-button" icon="cancel" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]"></paper-icon-button>
+          <!-- <paper-button class="add-button cancel-button" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]">Cancel</paper-button>
+          <paper-button class="add-button" on-click="_onAddCard">Save</paper-button> -->
+        <div class="clearfix"></div>
+      </div>
+      <div hidden$="[[_isAdding]]">
+        <paper-fab id="add-fab" mini icon="icons:add" class="add-fab" on-click="_showAddCard"></paper-fab>
+      </div>
       <div class="clearfix"></div>
     </div>
-    <div hidden$="[[_isAdding]]">
-      <paper-fab id="add-fab" mini icon="icons:add" class="add-fab" on-click="_showAddCard"></paper-fab>
-    </div>
-    <div class="clearfix"></div>
-
   </template>
 
   <script>
@@ -159,6 +198,10 @@
           _isAdding: {
             type: Boolean,
             value: false
+          },
+          loading: {
+            type: Boolean,
+            value: false
           }
         };
       }
@@ -174,17 +217,12 @@
       }
 
       _onCardTagged(e) {
-        var item = this.$.cardList.itemForElement(e.target);
-        var i = this.$.cardList.indexForElement(e.target);
-        if (!!e.detail.default) {
-          this.cards.filter(x => x.isDefault).forEach(x => { x.isDefault = false; console.log(x); });
-          item.isDefault = true;
-          this.notifySplices('cards');
-        }
+        // do nothing...
       }
 
       _addCard(card) {
         var newCard = {
+          id: card.id || '',
           last4: card.last4, 
           expiryMonth: card['exp_month'],
           expiryYear: card['exp_year'],
@@ -205,12 +243,12 @@
       }
 
       _removeCard(card) {
-        var index = this.cards.indexOf(card);
-        if (index > -1) {
-          this.splice('cards', index, 1);
-        } else {
-          console.warn('can\'t remove the card');
-        }
+        // var index = this.cards.indexOf(card);
+        // if (index > -1) {
+        //   this.splice('cards', index, 1);
+        // } else {
+        //   console.warn('can\'t remove the card');
+        // }
       }
 
       /*
@@ -247,6 +285,7 @@
         var element1 = this.$['add-fab'];
         var element2 = this.$['add-card-container'];
         this._isAdding = true;
+        this.$.stripe.focus();
       }
 
       resetCard() {
@@ -258,8 +297,9 @@
         this.resetCard();
       }
 
-      _noCards(cardCount) {
-        console.log('_noCards', cardCount, cardCount <= 0);
+      _noCards(cardCount, adding) {
+        console.log('_noCards', cardCount, cardCount <= 0, adding);
+        if (adding) return false;
         return cardCount <= 0;
       }
 
