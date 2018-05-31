@@ -84,9 +84,11 @@
         display: none;
         opacity: 0;
       }
+
       .container {
         position: relative;
       }
+
       .cover {
         position: absolute;
         top: 0;
@@ -96,12 +98,14 @@
         z-index: 1;
         background-color: rgba(255,255,255,0.8);
       }
+
       .loader {
         height: 32px;
         width: 32px;
         top: 50%;
         left: 50%;
       }
+      
       .show {
         display: block;
       }
@@ -123,7 +127,6 @@
             status="[[item.status]]" 
             is-default="[[item.isDefault]]" 
             can-remove="[[_canRemove(item, cards.length)]]"
-            on-remove="_onRemoveCard"
             on-tag="_onCardTagged"></card-preview>
         </template>
       </dom-repeat>
@@ -216,45 +219,8 @@
         return length > 0;
       }
 
-      _onRemoveCard(e) {
-        var item = this.$.cardList.itemForElement(e.target);
-        var i = this.$.cardList.indexForElement(e.target);
-        this._removeCard(item);
-      }
-
-      _onCardTagged(e) {
-        // do nothing...
-      }
-
-      _addCard(card) {
-        var newCard = {
-          id: card.id || '',
-          last4: card.last4, 
-          expiryMonth: card['exp_month'],
-          expiryYear: card['exp_year'],
-          type: card.brand.toLowerCase(), 
-          canRemove: true, 
-          status: 'active',
-          isDefault: false
-        };
-        this.push('cards', newCard);
-      }
-
       _onAddCard(e) {
         this.$.stripe.submit();
-      }
-
-      _stripeTokenHandler(token) {
-        console.log('Got Token:', token);
-      }
-
-      _removeCard(card) {
-        // var index = this.cards.indexOf(card);
-        // if (index > -1) {
-        //   this.splice('cards', index, 1);
-        // } else {
-        //   console.warn('can\'t remove the card');
-        // }
       }
 
       /*
@@ -315,19 +281,13 @@
       }
 
       _handleTokenResponse(e) {
-        console.log('TokenReponse: ', e.detail.token);
-        const bubbles = true;
-        const composed = true;
-        // this._addCard(e.detail.token.card);
-        this.dispatchEvent(new CustomEvent('card-token', {detail: { token: e.detail.token }, bubbles, composed}));
+        this.dispatchEvent(new CustomEvent('card-token', {detail: { token: e.detail.token }, bubbles: true, composed: true}));
         this._hideAddCard();
       }
 
       _handleTokenError(e) {
-        console.log('TokenError: ', e);
-        const bubbles = true;
-        const composed = true;
-        this.dispatchEvent(new CustomEvent('card-error', {detail: { error: e.detail.error }, bubbles, composed}));
+        console.error('TokenError: ', e);
+        this.dispatchEvent(new CustomEvent('card-error', {detail: { error: e.detail.error }, bubbles: true, composed: true}));
       }
 
       refresh() {

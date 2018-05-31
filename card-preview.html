@@ -150,10 +150,12 @@
         cursor: pointer;
         fill: #ff0000;
       }
+      
       .confirm-dialog {
         max-width: 600px;
         white-space: normal !important;
       }
+      
       .warningIcon {
         --iron-icon-height: 48px;
         --iron-icon-width: 48px;
@@ -173,7 +175,6 @@
       <iron-icon hidden$="[[isDefault]]" icon="icons:star-border" class="star" on-click="_tagCard"></iron-icon>
       <iron-icon hidden$="[[!isDefault]]" icon="icons:star" class="default"></iron-icon>
       <paper-ripple></paper-ripple>
-      <!-- <iron-icon hidden$="[[!canRemove]]" icon="icons:remove-circle-outline" class="remove" on-click="_removeCard"></iron-icon> -->
     </div>
     <paper-dialog 
       id="confirmDelete" 
