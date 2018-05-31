@@ -39,10 +39,14 @@
         on-card-token="_onCardToken"
         on-remove="_onCardRemove"
         on-tag="_onCardTagged"
+        on-refresh-cards="_loadCards"
+        empty-message="..."
+        show-refresh
         ></stripe-cards>
-    <paper-button on-click="_loadCards">Load Cards</paper-button>
-    <paper-button on-click="_loadDummyCards">Load Dummy Cards</paper-button>
-    <paper-button on-click="reset">Reset</paper-button>
+    <h4>Test actions:</h4>
+    <paper-button raised on-click="_loadCards">Load Cards</paper-button>
+    <paper-button raised on-click="_loadDummyCards">Load Dummy Cards</paper-button>
+    <paper-button raised on-click="reset">Reset</paper-button>
     <iron-ajax
         id="getCards"
         method="GET"
@@ -139,6 +143,11 @@
             value: 'https://localhost.acquisio.com/api/v1/cards'
           }
         };
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+        this._loadCards();
       }
 
       _loadDummyCards() {

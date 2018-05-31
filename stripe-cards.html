@@ -110,8 +110,8 @@
       <div class="cover" hidden$="[[!loading]]">
         <paper-spinner class="loader" active></paper-spinner>
       </div>
-      <h2>[[titleString]]</h2>
-      <no-card hidden$="[[!_noCards(cards.length, _isAdding)]]">... no credit card on file ...</no-card>
+      <h2>[[titleString]] <paper-icon-button on-click="refresh" icon="refresh" hidden$="[[!showRefresh]]"></paper-icon-button></h2>
+      <no-card hidden$="[[!_noCards(cards.length, _isAdding)]]">[[emptyMessage]]</no-card>
       <dom-repeat id="cardList" items="[[cards]]" filter="_isVisible" sort="_cardSort">
         <template>
           <card-preview 
@@ -139,8 +139,6 @@
           ></stripe-elements>
           <paper-icon-button class="ok-button" icon="check"  on-click="_onAddCard"></paper-icon-button>
           <paper-icon-button class="cancel-button" icon="cancel" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]"></paper-icon-button>
-          <!-- <paper-button class="add-button cancel-button" on-click="_hideAddCard" hidden$="[[!_canCancel(cards.length)]]">Cancel</paper-button>
-          <paper-button class="add-button" on-click="_onAddCard">Save</paper-button> -->
         <div class="clearfix"></div>
       </div>
       <div hidden$="[[_isAdding]]">
@@ -202,6 +200,14 @@
           loading: {
             type: Boolean,
             value: false
+          },
+          showRefresh: {
+            type: Boolean,
+            value: false
+          },
+          emptyMessage: {
+            type: String,
+            value: '... no credit card on file ...'
           }
         };
       }
@@ -322,6 +328,10 @@
         const bubbles = true;
         const composed = true;
         this.dispatchEvent(new CustomEvent('card-error', {detail: { error: e.detail.error }, bubbles, composed}));
+      }
+
+      refresh() {
+        this.dispatchEvent(new CustomEvent('refresh-cards', { bubbles: true, composed: true }));
       }
 
     }
